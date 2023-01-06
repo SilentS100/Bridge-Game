@@ -1,0 +1,125 @@
+
+#!/usr/bin/env python3
+
+import string
+import sys
+from socket import socket, gethostname, gethostbyname, AF_INET, SOCK_DGRAM
+import pygame 
+import re
+import os
+
+hostname=gethostname()   
+IPAddr=gethostbyname(hostname)   
+print("Your Computer Name      : " + hostname)   
+print("Your Computer IP Address: " + IPAddr) 
+
+
+
+
+# Send
+# {Create}   , {Name}, {}
+# {Message}  , {Name}, {Text}
+# {Move}     , {Name}, {Keys Pressed}
+
+# Recieve 
+# {Name}, {Position}, {Text}
+
+data = input('Name: ').strip()
+
+# screen = pygame.display.set_mode((800, 800))
+
+# pygame.display.set_caption('Chat Room')  
+# pygame.display.flip()
+pattern = re.compile('[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
+while pattern.match(data):
+        f = open("SERVER_IP.txt", "w+")
+        f.write(data)
+        
+        f.close()
+        data = input('New Server IP Set\nName: ').strip()
+
+        #open and read the file after the appending:
+f = open("SERVER_IP.txt", "r")
+ip = f.read()
+        
+
+
+SERVER_IP   = ip 
+PORT_NUMBER = 5000
+SIZE = 1024
+print ("Connected to Server IP  : {0}, via port {1}\n".format(SERVER_IP, PORT_NUMBER))
+
+mySocket = socket( AF_INET, SOCK_DGRAM )
+
+
+print('Connected Beta 1.4')
+
+packet = 'Create' + '|' + data + '|'+ IPAddr 
+mySocket.sendto(packet.encode(),(SERVER_IP,PORT_NUMBER))
+message = '~'
+
+from pynput.keyboard import Key, Listener
+os.system('cls')
+messaging = False
+
+clicked = []
+def on_press(key):
+        global message        
+        if key == Key.enter:
+                packet = 'Message' + '|' + data + '|'+ message.strip()
+                 
+                # print('sending: ' + message)
+                mySocket.sendto(packet.encode(),(SERVER_IP,PORT_NUMBER))
+                message = '~'
+                
+
+        allowed = list(''' '"-=[]:.,*^()!1234567890''')
+        
+        if message != '~' and (str(key)[0] != 'K') and ( str(key)[1] in allowed or str(key)[1].isalpha()):
+
+                message += str(key)[1]
+                os.system('cls')
+                print(message)
+                
+        if message != '~' and key == Key.space:
+                message += ' '
+                
+        if key == Key.backspace:
+                if len(message) > 0:
+                        message = message[:-1]
+                os.system('cls')
+                print(message)
+                
+        if message == '~' and str(key)[1] in ['w','a','s','d'] and str(key)[0] == "'" and str(key)[1] not in clicked:
+                clicked.append(str(key)[1])
+                packet = 'Move' + '|' + data + '|'+ str(key)[1] + ':press'
+                print('key pressed: ' + str(key)[1])
+                mySocket.sendto(packet.encode(),(SERVER_IP,PORT_NUMBER))
+                
+        if key == Key.tab:
+                message = ''
+        
+        
+             
+                
+def on_release(key):
+
+        if key == Key.esc:
+        # Stop listener
+                sys.exit()
+
+        if message == '~' and str(key)[1] in ['w','a','s','d'] and str(key)[0] == "'":
+                packet = 'Move' + '|' + data + '|'+ str(key)[1] + ':release'
+                print('key released: ' + str(key)[1])
+                mySocket.sendto(packet.encode(),(SERVER_IP,PORT_NUMBER))
+                clicked.remove(str(key)[1])
+                
+        # print(key.__repr__())
+with Listener(on_press=on_press,
+        on_release=on_release) as listener:
+        listener.join()
+
+#mySocket.sendto( packet.encode(),(SERVER_IP,PORT_NUMBER))
+sys.exit()
+
+
