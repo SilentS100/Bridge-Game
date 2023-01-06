@@ -1,0 +1,149 @@
+from random import randint
+from socket import socket, gethostname, gethostbyname, AF_INET, SOCK_DGRAM
+import sys
+import pygame
+
+hostname=gethostname()   
+IPAddr=gethostbyname(hostname)   
+print("Your Computer Name is:"+hostname)   
+print("Your Computer IP Address is:"+IPAddr) 
+
+
+
+PORT_NUMBER = 5000
+SIZE = 1024
+
+pygame.font.init() 
+screen = pygame.display.set_mode((800, 800))
+
+colors = ['#D33D3D','#5599B8','#215124']
+
+class Player():
+    def __init__(self, name, ip, x = randint(0,800), y = randint(0,800)):
+        self.name = name
+        self.x = x
+        self.y = y
+        self.message = ''
+        self.code = randint(0,2)
+
+        self.vX = 0
+        self.vY = 0
+        self.pressed = []
+        self.ip = ip
+    def render(self):
+        size = 12
+        
+        # print(type(self.vX), type(self.x), self.vX, self.x)
+        self.x += self.vX
+        self.y += self.vY
+        if self.x > 800:
+            self.vX = -1
+        if self.x < 0:
+            self.vX = 1 
+
+        pygame.draw.circle( screen, colors[self.code], (self.x, self.y), size ) 
+        
+        font = pygame.font.SysFont(None, 20)
+        
+        img = font.render(self.name, True, (0,0,0))
+        
+        screen.blit(img, (self.x - img.get_width()//2, self.y + size + 2))
+
+        
+        
+        img = font.render(self.message, True, (0,0,0))
+        
+        screen.blit(img, (self.x - img.get_width()//2, self.y - size * 2 - 7 - 2))
+
+
+hostName = gethostbyname( '0.0.0.0' )
+
+mySocket = socket( AF_INET, SOCK_DGRAM )
+mySocket.bind( (hostName, PORT_NUMBER) )
+
+
+# pygame.display.set_caption('ip: ' + IPAddr)  
+# pygame.display.flip()
+
+print ("Test server listening on port {0}\n".format(PORT_NUMBER))
+players = {}
+total_players = 0
+
+
+def receiver():
+    while True:       
+        (data, addr) = mySocket.recvfrom(SIZE)
+
+        # print(data)
+        (command, name, data) = str(data).split('|')
+
+        command = repr(command)[3:-1]
+        name = repr(name)[1:-1]
+        data = repr(data)[1:-2]
+
+        if command == 'Create':
+            players[name] = Player(name, data)
+            print('Create ' + name)
+            
+        if command == 'Message':
+            players[name].message = data
+            print('Message ' + data)
+        
+        if command == 'Move':
+
+            r = 2
+            (key, action) = data.split(':')
+            
+            movement = {'w':(0,-r),'a':(-r,0),'s':(0,r),'d':(r,0)}
+            if action == 'press':
+                
+                players[name].vX += movement[key][0]
+                players[name].vY += movement[key][1]
+                
+            elif action == 'release':
+            
+                players[name].vX -= movement[key][0]
+                players[name].vY -= movement[key][1]
+            
+            
+
+# def echo():
+    # num = 0
+    # while True:  
+             
+    #     for i in range(len(players.items())): 
+    #         players.values[i].
+    #         data = 
+    #         mySocket.sendto( data.encode(),(SERVER_IP,PORT_NUMBER))
+    #     num += 1 
+
+
+import threading
+task_receiver = threading.Thread(target = receiver)
+task_receiver.start()
+
+# task_echo = threading.Thread(target = echo)
+# task_echo.start()
+
+running = True
+
+# players['Tester'] = Player('Tester','placeholder')
+
+while running:
+    for event in pygame.event.get():
+      
+        # Check for QUIT event      
+        if event.type == pygame.QUIT:
+            running = False
+    
+    still_players = list(players.values())
+    for p in still_players:
+        p.render()
+    
+    
+    pygame.display.update()
+    
+    screen.fill((234, 212, 252))
+
+    
+sys.ext()
